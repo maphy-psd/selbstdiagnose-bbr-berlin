@@ -1,0 +1,735 @@
+\documentclass[
+paper=a4,
+fontsize=12pt,
+headings=small,
+parskip=half,
+draft=false
+]{scrartcl}
+
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[ngerman]{babel} 
+\usepackage{microtype}
+
+% Tool-Package für das Programmieren
+\usepackage{etoolbox}
+\newbool{sw}
+\setbool{sw}{false}
+
+% Seitenränder
+\usepackage{geometry}
+\geometry{a4paper,left=10mm,right=10mm, top=20mm, bottom=25mm, landscape=true}
+
+
+% Layoutangaben
+\newcommand{\schule}{}
+\newcommand{\einheit}{Vorbereitung BBR}
+\newcommand{\lehrkraft}{}
+\newcommand{\fachklasse}{Mathematik Klasse 9}
+
+% Header und Footer einrichten
+\usepackage[%
+headsepline,
+%footsepline,
+]{scrlayer-scrpage}
+\clearpairofpagestyles
+
+\ohead{\fachklasse}
+\ihead{\einheit}
+%\ifoot{\lehrkraft}
+%\ofoot{\schule}
+
+% Schrift im Header und Footer kleiner
+\setkomafont{pagehead}{\small}
+\setkomafont{pagefoot}{\small\normalfont\normalcolor}
+
+% Tabelle über mehrere Seiten (longtable) mit einer automatischen Restbreiten-X-Spalte (tabu)
+\usepackage{longtable}
+\usepackage{tabu}
+
+
+\usepackage{ragged2e}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\Centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\RaggedLeft\arraybackslash}p{#1}}
+
+% eine Tabellenzelle über mehrere Zeilen expandieren
+\usepackage{multirow}
+
+
+% engere Listen [nosep]
+\usepackage{enumitem}
+
+% das super-düpi-tolle Paket für die Zeichnungen
+\usepackage{tikz}
+\usetikzlibrary{positioning, calc, arrows.meta,patterns}
+\usetikzlibrary{backgrounds}
+
+% für die smileys
+\usepackage{tikzsymbols}
+% für den Haken \faCheck oder Kreuz \faClose
+\usepackage{fontawesome}
+
+% für das Koordinatensystem/Punkte und Streifendiagramm
+\usepackage{pgfplots, pgfplotstable}
+\pgfplotsset{compat=newest}
+
+% Euro-Symbol mit \EUR{}
+\usepackage{eurosym}
+
+% richtige und einfache Einheiten
+\usepackage{siunitx}
+% laden der deutschen Schreibweise und Abkürzungen wie \m für \meter
+\sisetup{locale=DE,per-mode=fraction,output-decimal-marker={,},load-configurations=abbreviations}
+
+% Mathesachen
+\usepackage{amssymb,amsmath,amsfonts,amsthm,amstext}
+
+\usepackage{hyperxmp}
+%%%%%%% Hyperlinks in pdf %%%%%%%
+\usepackage[
+bookmarks,                   %% PDF-Lesezeichen
+bookmarksopen=true,          %% Lesezeichenbaum aufgeklappt...
+bookmarksopenlevel=3,        %% ...um wie viele Ebenen?
+bookmarksnumbered=true,      %% Lesezeichen numerieren
+pdfstartpage={1},
+pdfstartview={FitH},
+  pdftitle={Selbstdiagnosebogen Mathe BBR},
+  pdfauthor={Fachseminar Mathematik Liebchen},
+  pdfsubject={Selbstdiagnose als Beitrag zum eigenverantwortlichen Lernen},
+  pdfcreator={LaTeX with KOMA-Script and hyperref package},
+  pdfkeywords={Mathe, Mathematik, BBR},
+%  pdfproducer={},
+colorlinks=false, pdfborder={0 0 0},
+breaklinks=true,
+plainpages=false,
+pdfpagelabels
+]{hyperref}
+
+
+\usepackage[
+type={CC},
+modifier={by-nc-sa},
+version={4.0},
+]{doclicense}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% Ab hier kommt der spannende Teil mit den Makros %%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% LaTeX3-Sachen jetzt schon, damit wir auch besser Programmieren können
+\usepackage{xparse}
+
+% vereinfachte und verbesserte if-then-else-Abfragen
+\usepackage{xifthen}
+
+% "String"-Variable für die einzelnen Seiten definieren -> Die Idee ist, dass die String-Variablen den Tabelleninhalt enthalten
+\def\pagePartner{}
+\def\pageSelbst{}
+\def\pageLoesung{}
+\def\pageLauf{}
+
+% Zähler für die automatische Nummerierung der Aufgaben im Stil Thema.Frage (magicrownumbers.magicrowsubnumbers)
+\newcounter{magicrownumbers}
+\newcounter{magicrowsubnumbers}
+
+% Makro für das Thema, setzt Frage-Zähler zurück, erhöht Themen-Zähler und gibt ihn aus
+\newcommand\rownumber{\setcounter{magicrowsubnumbers}{0}\stepcounter{magicrownumbers}\arabic{magicrownumbers}}
+% Makro für die Frage, erhöht den Frage-Zähler und gibt Wert aus
+\newcommand\rowsubnumber{\stepcounter{magicrowsubnumbers}\arabic{magicrownumbers}.\arabic{magicrowsubnumbers}}
+
+% Erweiterung des xparse-Pakets, da diese Abfrage (noch) nicht im Paket enthalten ist. Die Makros überprüfen, ob das übergebene Argument den xparse-Maker -NoValue- enthält oder leer ist. Wie bei xparse üblich in dreifacher Ausführung, je nach Anwendungsfall (ob true-false oder eins davon benötigt wird).
+\ExplSyntaxOn
+\DeclareExpandableDocumentCommand{\IfNoValueOrEmptyTF}{mmm}
+{
+	\IfNoValueTF{#1}{#2}
+	{
+		\tl_if_empty:nTF {#1} {#2} {#3}
+	}
+}
+\DeclareExpandableDocumentCommand{\IfNoValueOrEmptyT}{mm}
+{
+	\IfNoValueT{#1}
+	{
+		\tl_if_empty:nT {#1} {#2}
+	}
+}
+\DeclareExpandableDocumentCommand{\IfNoValueOrEmptyF}{mm}
+{
+	\IfNoValueF{#1}
+	{
+		\tl_if_empty:nF {#1} {#2}
+	}
+}
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% Ab hier folgen die wirklichen Makros: {} ist Pflicht-Argument, [] ein optionales Argument und * ein Schalter %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% für die genaue Definition siehe die xparse Dokumentation
+
+
+% Neues Makro für das Thema. Es benötigt nur das Thema als Pflicht-Argument. Optional können die multicolumn-Parameter übergeben werden. Dies ist aber nicht nötigt, da diese per Default auf dieses Template abgestimmt sind.
+% \thema{THEMA}[Spalten-Anzahl auf dem Partnerblatt][Spalten-Anzahl auf dem Selbstdiagnoseblatt][Spalten-Anzahl auf dem Lösungsblatt][Spaltendefinition auf allen Blättern]
+\DeclareDocumentCommand{\thema}{ m D[]{5} D[]{8} D[]{5} O{|l|} }{%
+	\appto\pagePartner{%
+		\multicolumn{#2}{#5}{\rownumber.~\textbf{#1}}\\\hline
+	}%
+	\appto\pageSelbst{%
+		\multicolumn{#3}{#5}{\rownumber.~\textbf{#1}}\\\hline
+	}%
+	\appto\pageLoesung{%
+		\multicolumn{#4}{#5}{\rownumber.~\textbf{#1}}\\\hline
+	}%
+	\appto\pageLauf{%
+		\rownumber & #1 & & & & & & 1 | 2 & & & & & \\\hline
+	}
+}
+
+% eine kleine Helper-Funktion, um einen Seitenumbruch für die Tabelle manuell zu erzeugen. Diese Funktion wird für das eigentliche \tablebreak Makro benötigt. Es überprüft, welche Seite übergeben wird und fügt entsprechend ein \pagebreak ein
+\newcommand{\helperTablebreak}[1]{%
+	\ifthenelse{\equal{#1}{P}}{%
+		\appto\pagePartner{%
+			\pagebreak
+		}
+	}{%
+		\ifthenelse{\equal{#1}{S}}{%			
+			\appto\pageSelbst{%
+				\pagebreak
+			}
+		}{%
+			\ifthenelse{\equal{#1}{L}}{%
+				\appto\pageLoesung{%
+					\pagebreak
+				}
+			}{%
+				\relax % muss auch mal sein xD
+			}
+		}
+	}
+}
+
+% Makro um einen manuellen Seitenumbruch einzufügen. Einziges Pflicht-Argument ist eine Komma-Liste mit den Seiten, auf denen ein Seitenumbruch eingefügt werden soll.
+% P - Partneraufgabe; S - Selbstdiagnose - L - Lösungsblatt
+% Bsp.: \tablebreak{P,L} für auf dem Partneraufgabebogen und auf dem Lösungsblatt ein Seitenumbruch ein
+\DeclareDocumentCommand{\tablebreak}{ >{\SplitList{ , }} m }{
+	\ProcessList{#1}{\helperTablebreak}	
+}
+
+
+% Zähler, um die Tabellenlinien in den vorletzten Spalten auf dem Selbstdiagnosebogen zu setzen
+\newcounter{multirownumber}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% das wichtige Makro für die eigentlichen Fragen %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%\stoff{Frage/Behauptung}[Antwort]*{Tätigkeits-Beschreibung}{Übungsmöglichkeiten}[Anzahl der Tabellenzeilen für \multirow]
+%\stoff{arg1}[arg2]*{arg4}{arg5}[arg6]
+
+% Die Übungsmöglichkeiten müssen mit \item gekennzeichnet werden, da sie in einer itemize-Umgebung gesetzt werden
+
+% Warum das letzte optionale Argument [Anzahl der Tabellenzeilen für \multirow]? oder [Aus wievielen Fragen besteht das Thema]
+% Wenn ein Thema mehrere Fragen enthält, dann sieht es optisch besser aus, wenn die entsprechnen Zeilen auch Tabellenlinien-technisch zusammenhängen.
+% Notice: Ich habe noch nicht getestet, wenn es so viele Fragen sind, dass ein automatischer Seitenumbruch eingefügt wird, was dann mit dem \multirow passiert.
+% ToDo: Prozess automatisieren; das Dokument müsste dann wahrscheinlich zweimal LaTeX-Läufe benötigen
+
+% Wenn der Schalter * nach der Antwort gesetzt wird, dann wird auf dem Lösungsblatt die Behauptung als falsch markiert, sonst per default auf wahr
+
+% z.B. \stoff{2 + 2 = 5}[2 + 2 = 4]*{Ich kann mit nat. Zahlen rechnen}{Klasse 1 Buch S. 10-12}[2]
+% erzeugt eine Behauptung 2 + 2 = 5 mit der Antwort 2 + 2 = 4, wobei die Behauptung als falsch markiert wird. Die Übungsmöglichkeiten werden über zwei Zeilen geschrieben.
+
+\DeclareDocumentCommand{\stoff}{ m D[]{} s m m o }{%
+	% Auf der Partner-Seite muss nur die Frage/Behauptung {arg1} zur String-Variable hinzugefügt werden
+	\appto\pagePartner{%
+		\rowsubnumber. & #1 & & &\\\hline
+	}%
+	% Auf dem Selbstdiagnosebogen wird es etwas komplizierter
+	\appto\pageSelbst{%
+		% Ist das optionale \multirow-Argument [arg6] gesetzt? Dann setze den Hilfs-Zähler auf die Anzahl der \multirow-Zeilen [arg6]
+		\IfNoValueOrEmptyF{#6}{\setcounter{multirownumber}{#6}}%
+		% Ausgabe der Tätigkeits-Beschreibung, dann wird überprüft, ob das multirow-Argument [arg6] gesetzt und nicht leer ist
+		% Wenn True: Gebe die Übungsmöglichkeit aus
+		% Wenn False: Füge ein multirow ein und gebe dann die Übungsmöglichkeiten aus
+		\rowsubnumber. & {#4} & & & & &%
+		\IfNoValueOrEmptyTF{#6}%
+			% Überprüfe, dass das Übungsmöglichkeiten-Argument {arg5} nicht leer ist
+			{\IfNoValueOrEmptyF{#5}{\begin{itemize}#5\end{itemize}}}%
+				% Erzeuge eine multirow mit der Breite der X-Spalte
+				{\multirow{#6}{\tabucolX}{%
+						% Überprüfe, das das Übungsmöglichkeiten-Argument {arg5} nicht leer ist
+						\IfNoValueOrEmptyF{#5}{\begin{itemize}#5\end{itemize}}}}%
+				& \\% Als letztes wird überprüft, welche Tabellenlinie gesetzt werden muss -- durchgehend oder nur bis zu 6 Spalte, da multirow gesetzt ist
+					\ifnumequal{\value{magicrowsubnumbers}}{\value{multirownumber}}{\hline}{\cline{1-6}}
+	}%
+	\appto\pageLoesung{%
+		% Auf dem Lösungsblatt wird die Frage gesetzt und dann überprüft, ob das Stern-Argument * gesetzt ist. Am Ende wird die Antwort {arg4} ausgegeben. 
+		\rowsubnumber. & #1 & \IfBooleanTF{#3}{ & \faClose}{\faCheck & } & #2 \\\hline
+	}%
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% Hier kann auch der Inhalt, der über den Tabellen plaziert wird, angepasst werden %%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% \maketitle-angelehnte Makros, um die einzelne Abschnitte zu erzeugen
+
+% für die Partneraufgaben
+\DeclareDocumentCommand{\makepagePartner}{}{%
+	\phantomsection
+	\addcontentsline{toc}{section}{Partneraufgabe}%
+	\begin{minipage}{0.5\textwidth}
+		\textbf{Partneraufgabe}
+		\label{sec:partneraufgabe}
+	\end{minipage}
+	\begin{minipage}{0.5\textwidth}
+		\textbf{Name:}\\
+		\textbf{Partner:}\\
+	\end{minipage}
+		
+	\begin{enumerate}[nosep]
+		\item Arbeite zuerst allein!
+		\item Erkläre deinem Partner deine Lösungen. Höre gewissenhaft zu, wenn er dir seine Lösungen erklärt. Wenn du Fehler entdeckst, berichtige sie!
+	\end{enumerate}
+	
+	\textit{Wenn du in deinen Antworten etwas änderst, dann \underline{benutze einen Stift in einer anderen Farbe}, damit dein Lehrer erkennen kann, wer von euch vielleicht Hilfe braucht.}
+	
+	Kreuze bei jeder Behauptung an, ob du sie für richtig oder falsch hältst. Begründe!	
+	\begin{longtabu} to \textwidth {|L{0.8cm}|L{10cm}|C{1.3cm}|C{1.3cm}|X|}
+		\hline
+		& \textbf{Behauptung} & richtig & falsch & \textbf{Begründung} \\\hline\endhead
+		\pagePartner
+		\hline
+	\end{longtabu}	
+}
+
+% für die Selbstdiagnose
+\DeclareDocumentCommand{\makepageSelbst}{}{%
+	\phantomsection
+	\addcontentsline{toc}{section}{Selbstdiagnosebogen}%
+	\begin{minipage}{0.5\textwidth}
+		\textbf{Selbstdiagnosebogen}
+		\label{sec:selbstdiagnosebogen}
+	\end{minipage}
+	\begin{minipage}{0.5\textwidth}
+		\textbf{Name:}\\
+	\end{minipage}
+	
+	Kreuze bei den nachfolgenden Aufgaben an, wie sicher du dich bei ihrer Bearbeitung fühlst.
+	\begin{center}
+		\framebox[\linewidth]{\textbf{Sei ehrlich zu dir selbst! Dieser Bogen wird nicht benotet.}}
+	\end{center}
+	In der letzten Spalte ist angegeben, wo du Aufgaben zum selbstständigen Üben findest.
+	
+	\setcounter{magicrownumbers}{0}
+	\begin{longtabu} to \textwidth {|L{0.5cm}|L{8cm}|C{0.7cm}|C{0.7cm}|C{0.7cm}|C{0.7cm}|X|C{1.5cm}|}
+		\hline
+		& \multirow{2}{5cm}{\textbf{Wie sicher fühlst du dich bei der Aufgabe?}} & \multicolumn{4}{c|}{\textbf{Einschätzung}} & \multirow{2}{*}{\textbf{Hier findest du Aufgaben zum Üben}} & \multirow{2}{*}{\textbf{Geübt}} \\
+		& & \Laughey[1.5] & \Smiley[1.5] & \Sey[1.5] & \Sadey[1.5] & & \\\hline\endhead
+		\pageSelbst 
+		\hline
+	\end{longtabu}	
+}
+
+% für das Lösungsblatt
+\DeclareDocumentCommand{\makepageLoesung}{}{%
+	\phantomsection
+	\addcontentsline{toc}{section}{Lösungsblatt}%
+	\label{sec:loesungsblatt}
+	\begin{center}
+		\framebox[\linewidth]{\textbf{Lösungsblatt}}
+	\end{center}
+	
+	Beachte: Es sind nur Musterlösungen angegeben. Natürlich sind auch andere Lösungswege möglich. \textit{Viele Wege führen nach Rom!}
+	
+	\setcounter{magicrownumbers}{0}
+	\begin{longtabu} to \textwidth {|L{0.8cm}|L{10cm}|C{1.3cm}|C{1.3cm}|X|}
+		\hline
+		& \textbf{Behauptung} & richtig & falsch & \textbf{Begründung} \\\hline\endhead
+		\pageLoesung
+		\hline
+	\end{longtabu}	
+}
+
+% für den Laufzettel
+\DeclareDocumentCommand{\makepageLauf}{}{%
+	\phantomsection
+	\addcontentsline{toc}{section}{Laufzettel}%
+	\label{sec:laufzettel}
+	\begin{center}
+		\fbox{\parbox[c][1.5cm]{\linewidth}{\centering \textbf{\large Laufzettel von }\rule{4cm}{0.5pt}}}
+%		\makebox(\linewidth,3cm)[]{\framebox[\linewidth]{\textbf{Laufzettel für: \rule{3cm}{0.5pt}}}}	
+	\end{center}
+	
+	Zu jedem Themengebiet gibt es eine Station mit Übungen. Jede Übung gibt es in zwei verschiedenen Schwierigkeiten -- Niveau 1 und 2.
+	
+	\begin{enumerate}[nosep]
+		\item Schätze dich mithilfe des Selbstdiagnosebogens zunächst für jedes Themengebiet zusammenfassend ein.
+		\item Lege eine Reihenfolge für deine Bearbeitung der Stationen fest -- fange mit dem Thema an, bei dem du dich noch unsicher fühlst. 
+		\item Entscheide dich bei jeder Station für ein Niveau -- kreise es ein.
+		\item Notiere alle Aufgaben, die du zu einem Themengebiet bearbeitet hast.
+		\item Schätze dich nach der Bearbeitung der Aufgaben erneut ein. Fühlst du dich jetzt sicherer?
+	\end{enumerate}
+	\vspace*{\fill}
+	\tabulinesep=3.9mm
+	\setcounter{magicrownumbers}{0}
+	\begin{longtabu} to \textwidth {|L{0.5cm}|X[0.8,l]|C{0.6cm}|C{0.6cm}|C{0.6cm}|C{0.6cm}|X[0.15,c]|X[0.15,c]|X[0.6,c]|C{0.6cm}|C{0.6cm}|C{0.6cm}|C{0.6cm}|}
+		\hline
+		& \textbf{Themengebiet} & \multicolumn{4}{c|}{\textbf{Einschätzung}} & \textbf{Reihen\-folge} & \textbf{Niveau} & \textbf{Erledigte Aufgaben} & \multicolumn{4}{c|}{\textbf{2. Einschätzung}} \\
+		& & \Laughey[1.5] & \Smiley[1.5] & \Sey[1.5] & \Sadey[1.5] & & & & \Laughey[1.5] & \Smiley[1.5] & \Sey[1.5] & \Sadey[1.5] \\\hline\endhead
+		\pageLauf
+		\hline
+	\end{longtabu}
+	\vfill 
+}
+
+% für den Laufzettel
+\DeclareDocumentCommand{\makepageInfo}{}{%
+\section*{Selbstdiagnosebogen BBR Berlin \hfill Version:~\today}
+Dieser Selbstdiagnosebogen und das zugehörige Material für die Stationsarbeit wurden von dem Fachseminar Mathematik Liebchen im zweiten Schulhalbjahr 2015/2016 entwickelt, durchgeführt und überarbeitet.
+\vspace*{-0.3cm}
+\section*{Selbstdiagnose}
+Mithilfe einer Selbstdiagnose erhalten die Schülerrinnen und Schüler eine individuelle Rückmeldung über ihren aktuellen Leistungsstand. Darauf aufbauend werden die weiteren Lernschritte geplant und gezielt geübt.
+\vspace*{-0.3cm}
+\section*{Gebrauchsanweisung}
+\begin{enumerate}[nosep]
+	\item Schüler bearbeiten zunächst einzeln die Aufgaben der \hyperref[sec:partneraufgabe]{Partneraufgaben}
+	\item In Partnerarbeiten werden die Ergebnise verglichen (\hyperref[sec:loesungsblatt]{Lösungsblatt} vorhanden)
+	\item Schüler schätzen sich mithilfe des \hyperref[sec:selbstdiagnosebogen]{Selbstdiagnosebogens} ein
+	\item Lehrkraft sammelt die Bögen ein und gibt Schülern anschließend Hinweise
+	\item Schüler füllen den \hyperref[sec:laufzettel]{Laufzettel} aus und üben an den Stationen
+\end{enumerate}
+\vspace*{-0.4cm}
+\section*{Aufruf zur Rückmeldung}
+Verbesserungen, Hinweise, Fehler oder Danksagungen bitte an \textit{selbstdiagnose@pietschmann.berlin} richten.
+
+Die \LaTeX-Dateien sind unter \textit{https://github.com/maphy-psd/selbstdiagnose-bbr-berlin} zu finden.
+\vspace*{-0.4cm}
+\section*{Lizenz}
+\doclicenseLongText (\doclicenseName)
+\vfill\hfill
+\doclicenseImage
+}
+
+% erzeugt alle Abschnitte
+\DeclareDocumentCommand{\makeallpages}{ s }{%
+	\IfBooleanT{#1}{%
+		\makepageInfo%
+		\newpage
+	}
+	\makepagePartner%
+	\newpage%
+	\makepageSelbst%
+	\newpage
+	\makepageLoesung%
+	\newpage
+	\makepageLauf%
+}
+
+
+\begin{document}
+\pagestyle{empty}
+\pagestyle{scrheadings}
+
+% extra Abschnitt zu den Tabellenlinien
+\tabulinesep=6pt
+% Tabellenzellen vergrößern
+\renewcommand{\arraystretch}{1.8}
+
+
+\thema{Pythagoras}
+\stoff{Ein 32-Zoll Monitor hat eine Breite von \SI{67,5}{\centi\m} und eine Bildschirmdiagonale von ca. \SI{81}{\centi\m}. Der Monitor ist ca. \SI{45}{\centi\m} hoch.}[Mit dem Satz des Pythagoras können wir das überprüfen:
+\begin{minipage}{\tabucolX}
+	\centering
+	$\begin{aligned}
+	(\text{Bildschirmdiagonale})^2 &= (\text{Breite})^2 + (\text{Höhe})^2 \\
+	(\text{Bildschirmdiagonale})^2 - (\text{Breite})^2 &= (\text{Höhe})^2 \\
+	(\SI{81}{\centi\m})^2 - (\SI{67,5}{\centi\m})^2 &= (\text{Höhe})^2 \\
+	\SI{6561}{\square\centi\m} - \SI{4522,5}{\square\centi\m} &= (\text{Höhe})^2 \\
+	\SI{2038,5}{\square\centi\m} &= (\text{Höhe})^2 \\
+	\text{Höhe} &= \sqrt{\SI{2038,5}{\square\centi\m}} \\ 
+	\text{Höhe} &\approx \SI{45}{\centi\m}
+	\end{aligned}$
+\end{minipage}]{Ich kann den Satz des Pythagoras anwenden, um die Länge einer Kathete zu bestimmen.}{\item \textit{\arabic{magicrownumbers}. Station: Pythagoras}}[2]
+
+\stoff{Ein Dreieck mit den Seitenlängen \SI{6}{\centi\m}, \SI{18}{\centi\m} und \SI{24}{\centi\m} ist rechtwinklig.}[\SI{24}{\centi\m} wäre als längste Seite die Hypotenuse. Mit dem Satz des Pythagoras können wir das überprüfen:
+	\begin{minipage}{\tabucolX}
+		\centering
+		$\begin{aligned}
+			c^2 &= a^2 + b^2 \\
+			24^2 &= 6^2 + 18^2 \\
+			576 &= 36 + 324 \\
+			576 &= 360
+		\end{aligned}$
+	\end{minipage}
+	Das ist offensichtlich falsch.]*{Ich kann mithilfe des Satzes des Pythagoras, überprüfen, ob ein Dreieck rechtwinklig ist.}{}
+
+\tablebreak{P,L}
+\thema{Prozentrechnung}
+\stoff{Die Umfrage "`Welche Haustiere magst du?"' hat das Ergebnis:
+\begin{center}
+	\begin{tikzpicture}
+		\begin{axis}[
+			width=\linewidth, %
+			xbar stacked, %
+			bar width=0.5cm,%
+			xlabel={Anteil}, %
+			legend style={at={(0.5,-0.17)},anchor=north,legend columns=-1},
+			xmin = 0,
+			xmax = 100,
+			ymax=0.3,
+			xtick={0,10,...,100},
+			axis y line=none,
+			axis x line*=middle,
+			x axis line style=-,
+		]
+		\ifbool{sw}{%
+			\addplot[pattern=north west lines]
+			coordinates{
+				(10,0.2)
+			};
+			\addplot[pattern=vertical lines]
+			coordinates{
+				(45,0.2)
+			};
+			\addplot[pattern=north east lines]
+			coordinates{
+				(28,0.2)
+			};
+			\addplot[pattern=horizontal lines]
+			coordinates{
+				(17,0.2)
+			};
+		}{%
+			\addplot[fill=orange!50]
+			coordinates{
+				(10,0.2)
+			};
+			\addplot[fill=blue!50]
+			coordinates{
+				(45,0.2)
+			};
+			\addplot[fill=yellow!50]
+			coordinates{
+				(28,0.2)
+			};
+			\addplot[fill=red!50]
+			coordinates{
+				(17,0.2)
+			};
+		}
+		\legend{Hamster, Hunde, Katzen, Reptilien}
+		\end{axis}
+	\end{tikzpicture}
+\end{center}
+Nach dieser Umfrage sind Hunde die beliebtesten Haustiere mit 45\%.}[Der blaue Streifen geht von 10\% bis 55\%. Die Antwort "`Hunde"' hat somit einen Anteil von 45\%.]{Ich kann aus der grafischen Darstellung Prozentsätze ermitteln.}{\item \textit{\arabic{magicrownumbers}. Station: Prozentrechnung}}[2]
+\stoff{Die Möbelrechnung beträgt \EUR{456}. Bei Zahlung innerhalb von 10 Tagen wird 2\% Skonto (Preisnachlass auf den Rechnungsbetrag) gewährt. Nach Abzug des Skonto sind \EUR{437,76} zu zahlen}[%
+Wir berechnen 2\% von \EUR{456}:\newline
+	\begin{minipage}{\tabucolX}
+		\centering
+		$\begin{aligned}
+		\text{Skonto} &= \frac{456 \cdot 2}{100} \\
+		\text{Skonto} &= 9,12
+		\end{aligned}$
+	\end{minipage}
+Es sind noch \EUR{456} - \EUR{9,12} = \EUR{446,88} zu zahlen.\newline Alternativ könnte man auch ausrechnen, wieviel man noch bezahlen muss. Es sind nur noch 98\% zu zahlen: $ 0,98 \cdot $\EUR{456} = \EUR{446,88}.]*{Ich kann den Prozentwert bei gegebenen Prozentsatz und Grundwert berechnen.}{}
+
+\tablebreak{S}
+\thema{Flächen und Körper}
+\stoff{%
+	Es gilt:
+	\begin{enumerate}[nosep]
+		\item \SI{100}{\centi\m} = \SI{1}{\deci\m}
+		\item \SI{54}{\cubic\deci\m} = \SI{5400}{\cubic\centi\m}
+		\item \SI{1,87}{\litre} = \SI{1870}{\milli\litre}
+		\item \SI{500}{\m} = \SI{0,05}{\kilo\m}
+		\item \SI{25000}{\square\centi\m} = \SI{2,5}{\square\m}
+	\end{enumerate}
+	}[%
+	\begin{enumerate}[nosep]
+	\item falsch $ \SI{10}{\deci\m} $
+	\item falsch $ \SI{54000}{\cubic\centi\m} $
+	\item wahr
+	\item falsch $ \SI{0,5}{\kilo\m} $
+	\item wahr
+\end{enumerate}]*{Ich kann Einheiten umwandeln.}{\item \textit{\arabic{magicrownumbers}. Station: Flächen und Körper}}[3]
+\stoff{Ein Zylinder mit dem Radius \SI{2}{\centi\meter} hat ein Volumen von \SI{62,8}{\cubic\centi\meter}. Dann hat die Grundfläche eine Größe von ca. \SI{12,6}{\square\centi\meter} und die Höhe des Zylinders beträgt ca. \SI{5}{\centi\meter}.}[Die Grundfläche ist ein Kreis. Diese Kreisfläche ist: \[ A_G = \pi \cdot r^2 = \num{3,14} \cdot (\SI{2}{\centi\meter})^2 \approx \SI{12,6}{\square\centi\meter} \] Die Höhe des Zylinders erhalten wir, wenn wir die Formel für das Volumen $ V = A_G \cdot h $ (Volumen ist Grundfläche mal Höhe) nach der Höhe umstellen: \[ h = \frac{V}{A_G} = \frac{\SI{62,8}{\cubic\centi\meter}}{\SI{12,6}{\square\centi\meter}} \approx \SI{5}{\centi\meter} \]]{Ich kann aus gegebenen Größen eines Körpers gesuchte Größen mithilfe der passenden Formel bestimmen.}{}
+%\stoff{Ein Holzklotz hat die Form eines dreiseitigen Prismas. Dessen Grundfläche ist ein rechtwinkliges Dreieck mit den Seitenlängen \SI{1,5}{\centi\meter}, \SI{2}{\centi\meter} und \SI{2,5}{\centi\meter} ist. Die Höhe des Primas beträgt \SI{4}{\centi\meter}. Für die Herstellung von 2000 solcher Klötze benötigt man \SI{24}{\cubic\deci\meter} Holz. Die gesamte Oberfläche der Holzklötze beträgt \SI{60000}{\square\centi\meter}.}[Im rechtwinkliges Dreieck ist die Seite mit \SI{2,5}{\centi\meter} als größte Seite die Hypotenuse. Das Volumen von einen Holzklotz ist daher: \[ V = A_G \cdot h = \frac{\SI{1,5}{\centi\meter} \cdot \SI{2}{\centi\meter}}{2} \cdot \SI{4}{\centi\meter} = \SI{6}{\cubic\centi\meter}\] Für 2000 solcher Klötze benötigt man damit \[ \SI{6}{\cubic\centi\meter} \cdot 2000 = \SI{12000}{\cubic\centi\meter} = \SI{12}{\cubic\deci\meter}\] Holz. \newline\newline Die Oberfläche eines solchen Holzklotzes besteht aus der zweifachen Grundfläche und der Mantelfläche. Die Mantelfläche erhält man, indem den Umfang der Grundfläche mal der Höhe des Primas berechnet ( $ A_M = U \cdot h $ ). Die Oberfläche eines solchen Holzklotzes ist damit:	\begin{minipage}{\tabucolX}
+%	\centering
+%	$\begin{aligned}
+%	 A_O &= 2 \cdot A_G + A_M \\
+%	&= 2 \cdot \frac{\SI{1,5}{\centi\meter} \cdot \SI{2}{\centi\meter}}{2} + (\SI{1,5}{\centi\meter} + \SI{2}{\centi\meter} + \SI{2,5}{\centi\meter}) \cdot \SI{4}{\centi\meter} \\
+%	&= \SI{3}{\square\centi\meter} + \SI{24}{\square\centi\meter} \\
+%	&= \SI{27}{\square\centi\meter}
+%	\end{aligned}$
+%\end{minipage}
+%2000 solcher Holzklötze haben damit eine gesamte Oberfläche von: \[ \SI{27}{\square\centi\meter} \cdot 2000 = \SI{54000}{\square\centi\meter} \]]*{Ich kann das Volumen und die Oberfläche eines Primas bestimmen.}{}
+
+\stoff{Ein Holzklotz hat die Form eines Quaders mit den Seitenlängen \SI{1,5}{\centi\meter}, \SI{2}{\centi\meter} und \SI{3}{\centi\meter}. Für die Herstellung von 2000 solcher Klötze benötigt man \SI{18}{\cubic\deci\meter} Holz. Alle 2000 Holzklötze haben eine Oberfläche von \SI{60000}{\square\centi\meter}.}[Das Volumen von einen Holzklotz ist: \[ V = a \cdot b \cdot c = \SI{1,5}{\centi\meter} \cdot \SI{2}{\centi\meter} \cdot \SI{3}{\centi\meter} = \SI{9}{\cubic\centi\meter}\] Für 2000 solcher Klötze benötigt man damit \[ \SI{9}{\cubic\centi\meter} \cdot 2000 = \SI{18000}{\cubic\centi\meter} = \SI{18}{\cubic\deci\meter}\] Holz. Die Oberfläche eines solchen Holzklotzes ist:	\begin{minipage}{\tabucolX}
+		\centering
+		$\begin{aligned}
+		 A_O &= 2 \cdot (a\cdot b + a\cdot c + b\cdot c) \\
+		&= 2 \cdot (\SI{1,5}{\centi\meter} \cdot \SI{2}{\centi\meter} + \SI{1,5}{\centi\meter} \cdot \SI{3}{\centi\meter} + \SI{2}{\centi\meter} \cdot \SI{3}{\centi\meter}) \\
+		&= 2 \cdot (\SI{3}{\square\centi\meter} + \SI{4,5}{\square\centi\meter} + \SI{6}{\square\centi\meter}) \\
+		&= 2 \cdot \SI{13,5}{\square\centi\meter} \\
+		&= \SI{27}{\square\centi\meter}
+		\end{aligned}$
+	\end{minipage}
+	2000 solcher Holzklötze haben damit eine gesamte Oberfläche von: \[ \SI{27}{\square\centi\meter} \cdot 2000 = \SI{54000}{\square\centi\meter} \]]*{Ich kann das Volumen und die Oberfläche eines Quaders bestimmen.}{}
+
+\tablebreak{L}
+\thema{Funktionaler Zusammenhang}
+\stoff{\ \newline
+	\begin{center}
+		\begin{tikzpicture}
+		\begin{axis}[
+			axis lines=middle,
+			grid,
+			xmin=-5,xmax=5,
+			minor x tick num=1,
+			xlabel=$x$,
+			every axis x label/.style={at={(current axis.right of origin)},anchor=north west,inner xsep=15pt},
+			ymin=-5,ymax=5,
+%			ytick={-5,-4,...,5},
+			minor y tick num=1,
+			ylabel=$y$,
+			ylabel style={left,anchor=north east,inner xsep=25pt,inner ysep=-5pt},
+		]
+		\node[label={180:{A}},circle,fill,inner sep=2pt] at (axis cs:0,1) {};
+		\node[label={180:{B}},circle,fill,inner sep=2pt] at (axis cs:3,4) {};
+		\node[label={180:{C}},circle,fill,inner sep=2pt] at (axis cs:-4,-3) {};
+		\node[label={180:{D}},circle,fill,inner sep=2pt] at (axis cs:-2,2) {};
+		\end{axis}
+		\end{tikzpicture}
+	\end{center}
+	Die Punkte haben diese Koordinaten:
+	$ A(1|0) \quad B(3|4) \quad C(4|3) \quad D(2|-2) $}[Die Punkte haben die Koordinaten:\newline 
+$ A(0|1) \quad B(3|4) \quad C(-4|-3) \quad D(-2|2) $]*{Ich kann die Koordinaten von Punkten ermitteln.}{\item \textit{\arabic{magicrownumbers}. Station: Funktionaler Zusammenhang}}[3]
+\stoff{Wandertag! Die Klasse muss um 13 Uhr zurück sein. Die Wanderung zum Ausflugsziel dauert 50 Minuten. Dort wollen sich die Schüler zwei Stunden ausruhen, etwas essen, spielen und klettern. Hein rechnet aus, dass sie dann um 10:20 Uhr starten müssen.}[Hin- und Rückweg dauern zusammen 100 Minuten. Das sind 1 Stunde und 40 Minuten für die gesamte Wanderung. Wenn die Klasse um 13 Uhr zurück sein muss, dann rechnen wir rückwärts. 13 Uhr minus 2 Stunden Aufenthalt macht 11 Uhr. 11 Uhr minus 1 Stunde Wanderung macht 10 Uhr. 10 Uhr minus 40 Minuten Wanderung macht 9:20 Uhr.]*{Ich kann aus Texten die wichtigen Informationen entnehmen und die gesuchte Größe bestimmen.}{}
+\stoff{Wenn drei Tüten Kartoffeln \SI{24}{\kilogram} wiegen, dann wiegen 7 Tüten \SI{56}{\kilogram}.}[Eine Tüte Kartoffeln wiegt: \[ \frac{\SI{24}{\kilogram}}{3} = \SI{8}{\kilogram} \] 7 Tüten wiegen somit: \[ 7 \cdot \SI{8}{\kilogram} = \SI{56}{\kilogram} \]]{Ich kann mithilfe der proportionalen Zuordnung gesuchte Größen berechnen.}{}
+
+\tablebreak{L}
+\thema{Terme}
+\stoff{Es gilt:\[ x+7y-x+13y = 4\cdot\left(x+5y\right) \]}[\begin{minipage}{\tabucolX}
+	\centering
+	$\begin{aligned}
+	5x+7y-x+13y &= \\
+	&= 4x+20y \\
+	&= 4\cdot\left(x+5y\right) \\
+	\end{aligned}$
+\end{minipage}]{Ich kann Terme zusammenfassen und vereinfachen.}{}[3]
+\stoff{Anna hat zwei DVDs mehr als Max.\newline
+\begin{description}
+\item[x:] Anzahl der DVDs von Anna
+\item[y:] Anzahl der DVDs von Max	
+\end{description}
+	Die Gleichung $ x - 2 = y $ gibt diesen Sachverhalt richtig wieder.
+}[Machen wir uns das an einem Beispiel deutlich.\newline Wenn Anna 20 DVDs hat, dann hat Max entsprechen 18 DVDs. Also ist $ x = 20 $ und $ y = 18 $. Setzen wir das in die Gleichung ein:
+\begin{minipage}{\tabucolX}
+	\centering
+	$\begin{aligned}
+	x - 2 &= y \\
+	20 - 2 &= 18 \\
+	18 &= 18 \\
+	\end{aligned}$
+\end{minipage}
+Das ist offensichtlich richtig.]{Aus einer Beschreibung kann ich eine Gleichung aufstellen.}{\item \textit{\arabic{magicrownumbers}. Station: Terme}}
+
+\stoff{Es gilt:\[ 9x-2\cdot\left(x-3y\right)+4\cdot\left(y+4x\right) = 24x-10y \]}[\begin{minipage}{\tabucolX}
+	\centering
+	$\begin{aligned}
+	9x-2\cdot\left(x-3y\right)+4\cdot\left(y+4x\right) &= \\
+	 &= 9x-2x+6y+4y+16x \\
+	 &= 23x+10y \\
+	\end{aligned}$
+\end{minipage}]*{Durch Auflösen von Klammern, kann ich Terme zusammenfassen.}{}
+
+
+
+\tablebreak{S}
+\thema{Daten und Zufall}
+\stoff{%
+	Eine Runde Glücksrad!\newline
+	\begin{center}
+	\def\angle{20}
+	\def\radius{3}
+	\def\cyclelist{{"orange","blue","red","green"}}
+	\newcount\cyclecount \cyclecount=-1
+	\newcount\ind \ind=-1
+	\begin{tikzpicture}[scale=0.6]
+	\begin{scope}[local bounding box=rad]
+	\foreach \percent/\name/\farbe in {
+		12.5/1/yellow,
+		12.5/3/red,
+		12.5/2/blue,
+		12.5/1/yellow,
+		12.5/1/yellow,
+		12.5/2/blue,
+		12.5/3/red,
+		12.5/3/red,
+	}{
+		\ifx\percent\empty\else                 % If \percent is empty, do nothing
+		\global\advance\cyclecount by 1       % Advance cyclecount
+		\global\advance\ind by 1              % Advance list index
+		\ifnum3<\cyclecount                   % If cyclecount is larger than list
+		\global\cyclecount=0                %   reset cyclecount and
+		\global\ind=0                       %   reset list index
+		\fi
+		% Draw angle and set labels
+			\ifbool{sw}{%
+				\draw [fill=white] (0,0) -- (\angle:\radius) arc (\angle:\angle+\percent*3.6:\radius) -- cycle;
+			}{%
+				\draw [fill=\farbe!50] (0,0) -- (\angle:\radius) arc (\angle:\angle+\percent*3.6:\radius) -- cycle;
+			}
+		\node[font=\bfseries] at (\angle+0.5*\percent*3.6:0.6*\radius) {\textbf{\name}};
+		\pgfmathparse{\angle+\percent*3.6}
+		\xdef\angle{\pgfmathresult}
+		\fi
+	};
+	\end{scope}
+	\begin{scope}[shift={(rad.south)},on background layer]
+	\draw (-1.5,-2) -- (2,-2) -- (1.5,-1) -- (-2,-1) -- (-1.5,-2);
+	\draw[fill=white] (-0.5,-1.5) -- (0.5,-1.5) -- (0.5,1) -- (-0.5,1) -- (-0.5,-1.5);
+	\end{scope}
+	\begin{scope}[shift={(rad.south)}]
+	\draw[color=black,ultra thick,line width=6pt, arrows={-Triangle[width=10pt]}] (0, -0.7) -- (0, 1);
+	\end{scope}
+	\end{tikzpicture}
+	\end{center}\ \newline
+	Die Wahrscheinlichkeit, dass die Zahl $ 2 $ gedreht wird, ist $ \frac{1}{4} $, was 14\% entspricht.}[Wir nehmen an, dass alle Kreissektoren gleich groß sind. Die Zahl "`2"' kommt zweimal vor. Insgesamt gibt es 8 Sektoren. Die Wahrscheinlichkeit, dass die Zahl 2 gedreht wird, beträgt damit \[ \frac{2}{8} = \frac{1}{4} \] Jedoch sind das 25\%.]*{Ich kann die Wahrscheinlichkeit von Ereignissen berechnen und als Bruch/Prozentangabe notieren.}{\item \textit{\arabic{magicrownumbers}. Station: Daten und Zufall}}[2]
+\stoff{Es gibt die Klassenarbeit zurück. Der Notenspiegel ist:\newline %
+	\begin{center}
+		\begin{tabular}{c|c|c|c|c|c}
+		1 & 2 & 3 & 4 & 5 & 6 \\\hline
+		2 & 4 & 13 & 2 & 0 & 1
+	\end{tabular}
+	\end{center}\ \newline		
+	Der Notendurchschnitt der Arbeit beträgt 3,2.}[Der Durchschnitt ist: \[ \frac{1 \cdot 2 + 2 \cdot 4 + 3 \cdot 13 + 4 \cdot 2 + 6 \cdot 1}{22} = \frac{63}{22} \approx \num{2,9}\]]*{Ich kann den Durchschnitt einer Datenmengen berechnen.}{}
+
+%\makepagePartner%
+%\newpage%
+%\makepageSelbst%
+%\newpage%
+%\makepageLoesung%
+%\newpage
+%\makepageLauf
+
+
+\makeallpages*
+
+% Station 1: Pythagoras
+% Station 2: Prozentrechnung
+% Station 3: Flächen und Körper
+% Station 4: Funktionaler Zusammenhang
+% Station 5: Terme
+% Station 5: Daten und Zufall
+
+\end{document}
